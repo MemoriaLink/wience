@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeria WebP - 64 Zdjęcia</title>
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --accent: #00e676;
+            --item-bg: #1a1a1a;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            font-family: sans-serif;
+        }
+
+        /* Siatka galerii */
+        #gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .item {
+            background: var(--item-bg);
+            aspect-ratio: 1/1;
+            cursor: pointer;
+            overflow: hidden;
+            border: 1px solid #333;
+            transition: border-color 0.3s;
+        }
+
+        .item:hover { border-color: var(--accent); }
+
+        .item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Podgląd (Lightbox) */
+        #viewer {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.97);
+            z-index: 999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 80vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        #main-img {
+            max-width: 90%;
+            max-height: 90%;
+            transition: transform 0.1s ease-out;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        /* Panel sterowania */
+        .ui {
+            background: rgba(30,30,30,0.9);
+            padding: 15px 25px;
+            border-radius: 40px;
+            border: 1px solid var(--accent);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: none;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+
+        button:hover { background: var(--accent); color: #000; }
+
+        .close {
+            position: absolute;
+            top: 20px; right: 30px;
+            font-size: 40px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gallery-grid"></div>
+
+    <div id="viewer">
+        <span class="close" onclick="closeImg()">&times;</span>
+        <div id="canvas">
+            <img id="main-img" src="" alt="">
+        </div>
+        <div class="ui">
+            <button onclick="doRot(-90)">↺</button>
+            <button onclick="doRes()">RESET</button>
+            <button onclick="doRot(90)">↻</button>
+            <span style="font-size: 12px; color: #888;">Scroll: Zoom | Drag: Przesuń</span>
+        </div>
+    </div>
+
+    <script>
+        const count = 64;
+        const grid = document.getElementById('gallery-grid');
+        const view = document.getElementById('viewer');
+        const img = document.getElementById('main-img');
+        
+        let rot = 0, scale = 1, x = 0, y = 0, isDown = false, sX, sY;
+
+        // Generowanie galerii (WebP)
+        for (let i = 1; i <= count; i++) {
+            const div = document.createElement('div');
+            div.className = 'item';
+            // Jeśli masz osobne miniatury, zmień src na 'thumbs/' + i + '.webp'
+            div.innerHTML = `<img src="${i}.webp" loading="lazy" alt="Foto ${i}">`;
+            div.onclick = () => {
+                img.src = `${i}.webp`;
+                view.style.display = 'flex';
+                doRes();
+            };
+            grid.appendChild(div);
+        }
+
+        function closeImg() { view.style.display = 'none'; img.src = ''; }
+        function doRot(d) { rot += d; update(); }
+        function doRes() { rot = 0; scale = 1; x = 0; y = 0; update(); }
+
+        // Zoom kółkiem
+        view.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            scale = Math.min(Math.max(0.1, scale + (e.deltaY < 0 ? 0.1 : -0.1)), 5);
+            update();
+        }, { passive: false });
+
+        // Przesuwanie
+        img.addEventListener('mousedown', (e) => {
+            isDown = true;
+            sX = e.clientX - x;
+            sY = e.clientY - y;
+            img.style.transition = 'none';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            x = e.clientX - sX;
+            y = e.clientY - sY;
+            update();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDown = false;
+            img.style.transition = 'transform 0.1s ease-out';
+        });
+
+        function update() {
+            img.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg) scale(${scale})`;
+        }
+
+        document.addEventListener('keydown', (e) => { if (e.key === "Escape") closeImg(); });
+    </script>
+</body>
+</html>
